@@ -3,6 +3,8 @@ import typing
 
 import os
 
+# is there a more elegant way to do this? Molule load error --> OSError: [WinError 126] The specified module could not be found
+# seems like having trouble load a dependency file?
 os.chdir('libs')
 
 h5lib = ct.cdll.LoadLibrary("TwH5Dll.dll")
@@ -50,7 +52,7 @@ def close(filename: str) -> int:
     Returns:
         result: return value from C function _TwCloseH5
     """
-    pass
+    return h5lib._TwCloseH5(filename)
 
 
 # The function `get_int_attribute` is a Python wrapper for the C function with prototype of:
