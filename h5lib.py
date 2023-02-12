@@ -1,8 +1,13 @@
 import ctypes as ct
 import typing
 
+import os
 
-h5lib = ct.cdll.LoadLibrary('./libs/TwH5Dll.dll')
+os.chdir('libs')
+
+h5lib = ct.cdll.LoadLibrary("TwH5Dll.dll")
+
+os.chdir('../')
 
 
 # Return values from C functions
