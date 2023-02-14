@@ -1,16 +1,14 @@
-import ctypes as ct
 from ctypes import *
+import h5py
+import os
 import typing
 
-import os
-import h5py
 
-# is there a more elegant way to do this? Molule load error --> OSError: [WinError 126] The specified module could not be found
-# seems like having trouble load a dependency file?
+# ERROR: Molule load error --> OSError: [WinError 126] The specified module could not be found
+# DLL was not loading within the current directory. I changed to the libs directory for loading the DLL file and it solved this problem.
+
 os.chdir('libs')
-
-h5lib = ct.cdll.LoadLibrary("TwH5Dll.dll")
-
+h5lib = cdll.LoadLibrary("TwH5Dll.dll")
 os.chdir('../')
 
 
@@ -86,15 +84,16 @@ def get_int_attribute(filename: str, location: str, name: str) -> typing.Tuple[i
             * the attribute value
     """
     attribute_value = int(h5py.File(filename, 'r')[location].attrs[name])
-    
+
     char_star_filename = c_char_p(bytes(filename, 'utf-8'))
     char_star_location = c_char_p(bytes(location, 'utf-8'))
     char_star_name = c_char_p(bytes(name, 'utf-8'))
     attribute_value_location = hex(id(attribute_value))
 
-    c_function_return = h5lib._TwGetIntAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
-    
-    int_attribute = (c_function_return, attribute_value)
+    h5_int_attribute = h5lib._TwGetIntAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
+    close(filename)
+
+    int_attribute = (h5_int_attribute, attribute_value)
     return int_attribute
 
 
@@ -133,9 +132,10 @@ def get_float_attribute(filename: str, location: str, name: str) -> typing.Tuple
     char_star_name = c_char_p(bytes(name, 'utf-8'))
     attribute_value_location = hex(id(attribute_value))
 
-    c_function_return = h5lib._TwGetFloatAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
+    h5_float_attribute = h5lib._TwGetFloatAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
+    close(filename)
 
-    float_attribute = (c_function_return, attribute_value)
+    float_attribute = (h5_float_attribute, attribute_value)
     return float_attribute
 
 
@@ -168,7 +168,14 @@ def get_str_attribute(filename: str, location: str, name: str) -> typing.Tuple[i
             * the attribute value
     """
     attribute_value = h5py.File(filename, 'r')[location].attrs[name]
-    tw_string_function_return = h5lib._TwGetStringAttributeFromH5(c_char_p(bytes(filename, 'utf-8')), c_char_p(bytes(location, 'utf-8')), c_char_p(bytes(name, 'utf-8')), c_char_p(attribute_value))
 
-    string_attribute = (tw_string_function_return, attribute_value)
+    char_star_filename = c_char_p(bytes(filename, 'utf-8'))
+    char_star_location = c_char_p(bytes(location, 'utf-8'))
+    char_star_name = c_char_p(bytes(name, 'utf-8'))
+    char_star_attribute_value = c_char_p(attribute_value)
+    
+    h5_string_attribute = h5lib._TwGetStringAttributeFromH5(char_star_filename, char_star_location, char_star_name, char_star_attribute_value)
+    close(filename)
+
+    string_attribute = (h5_string_attribute, attribute_value)
     return string_attribute
