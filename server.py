@@ -1,5 +1,4 @@
 from flask import Flask
-from flask import jsonify
 from os import listdir
 import h5lib
 import h5py
@@ -11,6 +10,7 @@ app = Flask(__name__)
 @app.route('/h5files')
 def h5files():
     files = listdir('./data')
+    h5lib.close('./data')
 
     if files:
         success = {
@@ -44,12 +44,12 @@ def h5files():
 
 
 
-@app.route('/ion_mode/<filename>')
+@app.route('/ion_mode/<path:filename>')
 def ion_mode(filename: str):
-    h5 = h5py.File(f"./data/{filename}.h5",'r')
-    ion_mode = h5.attrs['IonMode']
+    ion_mode = h5lib.get_str_attribute(filename, '/', 'IonMode')
+    h5lib.close(filename)
 
-    if ion_mode.decode() == 'positive':
+    if ion_mode[1].decode() == 'positive':
         success = {
             'status': 'success',
             'ionMode': 'positive'
@@ -80,18 +80,17 @@ def ion_mode(filename: str):
             'ionMode': None
         }, 400
     """
-    pass
 
 
-@app.route('/nbr_samples/<filename>')
+@app.route('/nbr_samples/<path:filename>')
 def nbr_samples(filename: str):
-    h5 = h5py.File(f"./data/{filename}.h5",'r')
-    samples = h5.attrs['NbrSamples']
+    samples = h5lib.get_int_attribute(filename, '/', 'NbrSamples')
+    h5lib.close(filename)
 
     if samples != 0:
         success = {
             'status': 'success',
-            'nbrSamples': int(samples)
+            'nbrSamples': int(samples[1])
         }, 200
         return success
     else:
@@ -122,17 +121,16 @@ def nbr_samples(filename: str):
     pass
 
 
-@app.route('/sample_interval/<filename>')
+@app.route('/sample_interval/<path:filename>')
 def sample_interval(filename: str):
     # should sample interval be equal to 0.5 or just a number?
-    h5 = h5py.File(f"./data/{filename}.h5",'r')
-    full_spec = h5['FullSpectra']
-    interval = full_spec.attrs['SampleInterval']
+    interval = h5lib.get_float_attribute(filename, '/FullSpectra', 'SampleInterval')
+    h5lib.close(filename)
 
     if interval:
         success = {
             'status': 'success',
-            'sampleInterval': float(interval)
+            'sampleInterval': float(interval[1])
         }, 200
         return success
     else:
