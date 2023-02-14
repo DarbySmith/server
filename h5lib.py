@@ -1,8 +1,17 @@
 import ctypes as ct
+from ctypes import *
 import typing
 
+import os
+import h5py
 
-h5lib = ct.cdll.LoadLibrary('./libs/TwH5Dll.dll')
+# is there a more elegant way to do this? Molule load error --> OSError: [WinError 126] The specified module could not be found
+# seems like having trouble load a dependency file?
+os.chdir('libs')
+
+h5lib = ct.cdll.LoadLibrary("TwH5Dll.dll")
+
+os.chdir('../')
 
 
 # Return values from C functions
@@ -45,8 +54,8 @@ def close(filename: str) -> int:
     Returns:
         result: return value from C function _TwCloseH5
     """
-    pass
-
+    status = h5lib._TwCloseH5(c_char_p(bytes(filename, 'utf-8')))
+    return status
 
 # The function `get_int_attribute` is a Python wrapper for the C function with prototype of:
 #
@@ -76,7 +85,17 @@ def get_int_attribute(filename: str, location: str, name: str) -> typing.Tuple[i
             * return value from C function _TwGetIntAttributeFromH5
             * the attribute value
     """
-    pass
+    attribute_value = int(h5py.File(filename, 'r')[location].attrs[name])
+    
+    char_star_filename = c_char_p(bytes(filename, 'utf-8'))
+    char_star_location = c_char_p(bytes(location, 'utf-8'))
+    char_star_name = c_char_p(bytes(name, 'utf-8'))
+    attribute_value_location = hex(id(attribute_value))
+
+    c_function_return = h5lib._TwGetIntAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
+    
+    int_attribute = (c_function_return, attribute_value)
+    return int_attribute
 
 
 # The function `get_float_attribute` is a Python wrapper for the C function with prototype of:
@@ -107,7 +126,17 @@ def get_float_attribute(filename: str, location: str, name: str) -> typing.Tuple
             * return value from C function _TwGetFloatAttributeFromH5
             * the attribute value
     """
-    pass
+    attribute_value = float(h5py.File(filename, 'r')[location].attrs[name])
+
+    char_star_filename = c_char_p(bytes(filename, 'utf-8'))
+    char_star_location = c_char_p(bytes(location, 'utf-8'))
+    char_star_name = c_char_p(bytes(name, 'utf-8'))
+    attribute_value_location = hex(id(attribute_value))
+
+    c_function_return = h5lib._TwGetFloatAttributeFromH5(char_star_filename, char_star_location, char_star_name, attribute_value_location)
+
+    float_attribute = (c_function_return, attribute_value)
+    return float_attribute
 
 
 # The function `get_str_attribute` is a Python wrapper for the C function with prototype of:
@@ -138,4 +167,8 @@ def get_str_attribute(filename: str, location: str, name: str) -> typing.Tuple[i
             * return value from C function _TwGetStringAttributeFromH5
             * the attribute value
     """
-    pass
+    attribute_value = h5py.File(filename, 'r')[location].attrs[name]
+    tw_string_function_return = h5lib._TwGetStringAttributeFromH5(c_char_p(bytes(filename, 'utf-8')), c_char_p(bytes(location, 'utf-8')), c_char_p(bytes(name, 'utf-8')), c_char_p(attribute_value))
+
+    string_attribute = (tw_string_function_return, attribute_value)
+    return string_attribute
